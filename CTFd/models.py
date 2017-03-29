@@ -75,6 +75,23 @@ class Challenges(db.Model):
         return '<chal %r>' % self.name
 
 
+class Hints(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.Integer, default=0)
+    chal = db.Column(db.Integer, db.ForeignKey('challenges.id'))
+    hint = db.Column(db.Text)
+    cost = db.Column(db.Integer, default=0)
+
+    def __init__(self, chal, hint, cost=0, type=0):
+        self.chal = chal
+        self.hint = hint
+        self.cost = cost
+        self.type = type
+
+    def __repr__(self):
+        return '<hint %r>' % self.hint
+
+
 class Awards(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     teamid = db.Column(db.Integer, db.ForeignKey('teams.id'))
@@ -158,20 +175,42 @@ class Teams(db.Model):
     def __repr__(self):
         return '<team %r>' % self.name
 
-    def score(self):
+    def score(self, admin=False):
         score = db.func.sum(Challenges.value).label('score')
-        team = db.session.query(Solves.teamid, score).join(Teams).join(Challenges).filter(not Teams.banned, Teams.id == self.id).group_by(Solves.teamid).first()
+        team = db.session.query(Solves.teamid, score).join(Teams).join(Challenges).filter(Teams.banned == False, Teams.id == self.id)
         award_score = db.func.sum(Awards.value).label('award_score')
-        award = db.session.query(award_score).filter_by(teamid=self.id).first()
+        award = db.session.query(award_score).filter_by(teamid=self.id)
+
+        if not admin:
+            freeze = Config.query.filter_by(key='freeze').first()
+            if freeze and freeze.value:
+                freeze = int(freeze.value)
+                freeze = datetime.datetime.utcfromtimestamp(freeze)
+                team = team.filter(Solves.date < freeze)
+                award = award.filter(Awards.date < freeze)
+
+        team = team.group_by(Solves.teamid).first()
+        award = award.first()
+
         if team:
             return int(team.score or 0) + int(award.award_score or 0)
         else:
             return 0
 
-    def place(self):
+    def place(self, admin=False):
         score = db.func.sum(Challenges.value).label('score')
         quickest = db.func.max(Solves.date).label('quickest')
-        teams = db.session.query(Solves.teamid).join(Teams).join(Challenges).filter(not Teams.banned).group_by(Solves.teamid).order_by(score.desc(), quickest).all()
+        teams = db.session.query(Solves.teamid).join(Teams).join(Challenges).filter(Teams.banned == False)
+
+        if not admin:
+            freeze = Config.query.filter_by(key='freeze').first()
+            if freeze and freeze.value:
+                freeze = int(freeze.value)
+                freeze = datetime.datetime.utcfromtimestamp(freeze)
+                teams = teams.filter(Solves.date < freeze)
+
+        teams = teams.group_by(Solves.teamid).order_by(score.desc(), quickest).all()
+
         # http://codegolf.stackexchange.com/a/4712
         try:
             i = teams.index((self.id,)) + 1
@@ -219,6 +258,22 @@ class WrongKeys(db.Model):
 
     def __repr__(self):
         return '<wrong %r>' % self.flag
+
+
+class Unlocks(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    teamid = db.Column(db.Integer, db.ForeignKey('teams.id'))
+    date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    itemid = db.Column(db.Integer)
+    model = db.Column(db.String(32))
+
+    def __init__(self, model, teamid, itemid):
+        self.model = model
+        self.teamid = teamid
+        self.itemid = itemid
+
+    def __repr__(self):
+        return '<unlock %r>' % self.teamid
 
 
 class Tracking(db.Model):

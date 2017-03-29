@@ -1,10 +1,11 @@
 from flask import current_app as app, render_template, request, redirect, jsonify, url_for, Blueprint
-from CTFd.utils import admins_only, is_admin, unix_time, get_config, \
-    set_config, sendmail, rmdir, create_image, delete_image, run_image, container_status, container_ports, \
-    container_stop, container_start, get_themes, cache, upload_file
-from CTFd.models import db, Teams, Solves, Awards, Containers, Challenges, WrongKeys, Keys, Tags, Files, Tracking, Pages, Config, DatabaseError
+from CTFd.utils import admins_only, is_admin, cache
+from CTFd.models import db, Teams, Solves, Awards, Containers, Challenges, WrongKeys, Keys, Tags, Files, Tracking, Pages, Config, Hints, Unlocks, DatabaseError
 from CTFd.plugins.keys import get_key_class, KEY_CLASSES
 from CTFd.plugins.challenges import get_chal_class, CHALLENGE_CLASSES
+
+from CTFd import utils
+
 import os
 
 admin_challenges = Blueprint('admin_challenges', __name__)
@@ -86,6 +87,66 @@ def admin_delete_tags(tagid):
         return '1'
 
 
+@admin_challenges.route('/admin/hints', defaults={'hintid': None}, methods=['POST', 'GET'])
+@admin_challenges.route('/admin/hints/<int:hintid>', methods=['GET', 'POST', 'DELETE'])
+@admins_only
+def admin_hints(hintid):
+    if hintid:
+        hint = Hints.query.filter_by(id=hintid).first_or_404()
+
+        if request.method == 'POST':
+            hint.hint = request.form.get('hint')
+            hint.chal = int(request.form.get('chal'))
+            hint.cost = int(request.form.get('cost'))
+            db.session.commit()
+
+        elif request.method == 'DELETE':
+            db.session.delete(hint)
+            db.session.commit()
+            db.session.close()
+            return ('', 204)
+
+        json_data = {
+            'hint': hint.hint,
+            'type': hint.type,
+            'chal': hint.chal,
+            'cost': hint.cost,
+            'id': hint.id
+        }
+        db.session.close()
+        return jsonify(json_data)
+    else:
+        if request.method == 'GET':
+            hints = Hints.query.all()
+            json_data = []
+            for hint in hints:
+                json_data.append({
+                    'hint': hint.hint,
+                    'type': hint.type,
+                    'chal': hint.chal,
+                    'cost': hint.cost,
+                    'id': hint.id
+                })
+            return jsonify({'results': json_data})
+        elif request.method == 'POST':
+            hint = request.form.get('hint')
+            chalid = int(request.form.get('chal'))
+            cost = int(request.form.get('cost'))
+            hint_type = request.form.get('type', 0)
+            hint = Hints(chal=chalid, hint=hint, cost=cost)
+            db.session.add(hint)
+            db.session.commit()
+            json_data = {
+                    'hint': hint.hint,
+                    'type': hint.type,
+                    'chal': hint.chal,
+                    'cost': hint.cost,
+                    'id': hint.id
+                }
+            db.session.close()
+            return jsonify(json_data)
+
+
 @admin_challenges.route('/admin/files/<int:chalid>', methods=['GET', 'POST'])
 @admins_only
 def admin_files(chalid):
@@ -109,7 +170,7 @@ def admin_files(chalid):
             files = request.files.getlist('files[]')
 
             for f in files:
-                upload_file(file=f, chalid=chalid)
+                utils.upload_file(file=f, chalid=chalid)
 
             db.session.commit()
             db.session.close()
@@ -124,13 +185,34 @@ def admin_get_values(chalid, prop):
         chal_keys = Keys.query.filter_by(chal=challenge.id).all()
         json_data = {'keys': []}
         for x in chal_keys:
-            json_data['keys'].append({'id': x.id, 'key': x.flag, 'type': x.key_type, 'type_name': get_key_class(x.key_type).name})
+            json_data['keys'].append({
+                'id': x.id,
+                'key': x.flag,
+                'type': x.key_type,
+                'type_name': get_key_class(x.key_type).name
+                })
         return jsonify(json_data)
     elif prop == 'tags':
         tags = Tags.query.filter_by(chal=chalid).all()
         json_data = {'tags': []}
         for x in tags:
-            json_data['tags'].append({'id': x.id, 'chal': x.chal, 'tag': x.tag})
+            json_data['tags'].append({
+                'id': x.id,
+                'chal': x.chal,
+                'tag': x.tag
+                })
+        return jsonify(json_data)
+    elif prop == 'hints':
+        hints = Hints.query.filter_by(chal=chalid)
+        json_data = {'hints': []}
+        for hint in hints:
+            json_data['hints'].append({
+                    'hint': hint.hint,
+                    'type': hint.type,
+                    'chal': hint.chal,
+                    'cost': hint.cost,
+                    'id': hint.id
+                })
         return jsonify(json_data)
 
 
@@ -162,7 +244,7 @@ def admin_create_chal():
         db.session.commit()
 
         for f in files:
-            upload_file(file=f, chalid=chal.id)
+            utils.upload_file(file=f, chalid=chal.id)
 
         db.session.commit()
         db.session.close()
@@ -183,7 +265,7 @@ def admin_delete_chal():
     for file in files:
         upload_folder = app.config['UPLOAD_FOLDER']
         folder = os.path.dirname(os.path.join(os.path.normpath(app.root_path), upload_folder, file.location))
-        rmdir(folder)
+        utils.rmdir(folder)
     Tags.query.filter_by(chal=challenge.id).delete()
     Challenges.query.filter_by(id=challenge.id).delete()
     db.session.commit()
