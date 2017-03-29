@@ -20,9 +20,11 @@ def admin_scoreboard_view():
 def admin_scores():
     score = db.func.sum(Challenges.value).label('score')
     quickest = db.func.max(Solves.date).label('quickest')
-    teams = db.session.query(Solves.teamid, Teams.name, score).join(Teams).join(Challenges).filter(not Teams.banned).group_by(Solves.teamid).order_by(score.desc(), quickest)
+    teams = db.session.query(Solves.teamid, Teams.name, score).join(Teams).join(
+        Challenges).filter(not Teams.banned).group_by(Solves.teamid).order_by(score.desc(), quickest)
     db.session.close()
     json_data = {'teams': []}
     for i, x in enumerate(teams):
-        json_data['teams'].append({'place': i + 1, 'id': x.teamid, 'name': x.name, 'score': int(x.score)})
+        json_data['teams'].append(
+            {'place': i + 1, 'id': x.teamid, 'name': x.name, 'score': int(x.score)})
     return jsonify(json_data)

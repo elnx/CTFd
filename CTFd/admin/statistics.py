@@ -17,10 +17,12 @@ def admin_graphs():
 @admins_only
 def admin_graph(graph_type):
     if graph_type == 'categories':
-        categories = db.session.query(Challenges.category, db.func.count(Challenges.category)).group_by(Challenges.category).all()
+        categories = db.session.query(Challenges.category, db.func.count(
+            Challenges.category)).group_by(Challenges.category).all()
         json_data = {'categories': []}
         for category, count in categories:
-            json_data['categories'].append({'category': category, 'count': count})
+            json_data['categories'].append(
+                {'category': category, 'count': count})
         return jsonify(json_data)
     elif graph_type == "solves":
         solves_sub = db.session.query(Solves.chalid, db.func.count(Solves.chalid).label('solves_cnt')) \
@@ -88,7 +90,8 @@ def admin_wrong_key(page):
         .all()
 
     wrong_count = db.session.query(db.func.count(WrongKeys.id)).first()[0]
-    pages = int(wrong_count / results_per_page) + (wrong_count % results_per_page > 0)
+    pages = int(wrong_count / results_per_page) + \
+        (wrong_count % results_per_page > 0)
 
     return render_template('admin/wrong_keys.html', wrong_keys=wrong_keys, pages=pages, curr_page=page)
 
@@ -111,6 +114,7 @@ def admin_correct_key(page):
         .all()
 
     solve_count = db.session.query(db.func.count(Solves.id)).first()[0]
-    pages = int(solve_count / results_per_page) + (solve_count % results_per_page > 0)
+    pages = int(solve_count / results_per_page) + \
+        (solve_count % results_per_page > 0)
 
     return render_template('admin/correct_keys.html', solves=solves, pages=pages, curr_page=page)

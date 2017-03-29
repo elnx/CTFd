@@ -3,7 +3,9 @@ import os
 # GENERATE SECRET KEY
 
 with open('.ctfd_secret_key', 'a+b') as secret:
-    secret.seek(0)  # Seek to beginning of file since a+ mode leaves you at the end and w+ deletes the file
+    # Seek to beginning of file since a+ mode leaves you at the end and w+
+    # deletes the file
+    secret.seek(0)
     key = secret.read()
     if not key:
         key = os.urandom(64)
@@ -32,7 +34,8 @@ class Config(object):
 
     http://flask-sqlalchemy.pocoo.org/2.1/config/#configuration-keys
     '''
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///{}/ctfd.db'.format(os.path.dirname(__file__))
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        'DATABASE_URL') or 'sqlite:///{}/ctfd.db'.format(os.path.dirname(__file__))
 
     '''
     SQLALCHEMY_TRACK_MODIFICATIONS is automatically disabled to suppress warnings and save memory. You should only enable
@@ -96,7 +99,8 @@ class Config(object):
     TRUSTED_PROXIES = [
         '^127\.0\.0\.1$',
         # Remove the following proxies if you do not trust the local network
-        # For example if you are running a CTF on your laptop and the teams are all on the same network
+        # For example if you are running a CTF on your laptop and the teams are
+        # all on the same network
         '^::1$',
         '^fc00:',
         '^10\.',

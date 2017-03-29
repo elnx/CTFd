@@ -18,7 +18,8 @@ def admin_teams_view(page):
     page_start = results_per_page * (page - 1)
     page_end = results_per_page * (page - 1) + results_per_page
 
-    teams = Teams.query.order_by(Teams.id.asc()).slice(page_start, page_end).all()
+    teams = Teams.query.order_by(Teams.id.asc()).slice(
+        page_start, page_end).all()
     count = db.session.query(db.func.count(Teams.id)).first()[0]
     pages = int(count / results_per_page) + (count % results_per_page > 0)
     return render_template('admin/teams.html', teams=teams, pages=pages, curr_page=page)
@@ -32,14 +33,17 @@ def admin_team(teamid):
     if request.method == 'GET':
         solves = Solves.query.filter_by(teamid=teamid).all()
         solve_ids = [s.chalid for s in solves]
-        missing = Challenges.query.filter(not_(Challenges.id.in_(solve_ids))).all()
+        missing = Challenges.query.filter(
+            not_(Challenges.id.in_(solve_ids))).all()
         last_seen = db.func.max(Tracking.date).label('last_seen')
         addrs = db.session.query(Tracking.ip, last_seen) \
                           .filter_by(team=teamid) \
                           .group_by(Tracking.ip) \
                           .order_by(last_seen.desc()).all()
-        wrong_keys = WrongKeys.query.filter_by(teamid=teamid).order_by(WrongKeys.date.asc()).all()
-        awards = Awards.query.filter_by(teamid=teamid).order_by(Awards.date.asc()).all()
+        wrong_keys = WrongKeys.query.filter_by(
+            teamid=teamid).order_by(WrongKeys.date.asc()).all()
+        awards = Awards.query.filter_by(
+            teamid=teamid).order_by(Awards.date.asc()).all()
         score = user.score(admin=True)
         place = user.place(admin=True)
         return render_template('admin/team.html', solves=solves, team=user, addrs=addrs, score=score, missing=missing,
@@ -182,8 +186,10 @@ def admin_solves(teamid="all"):
 @admins_only
 def admin_fails(teamid):
     if teamid == "all":
-        fails = WrongKeys.query.join(Teams, WrongKeys.teamid == Teams.id).filter(not Teams.banned).count()
-        solves = Solves.query.join(Teams, Solves.teamid == Teams.id).filter(not Teams.banned).count()
+        fails = WrongKeys.query.join(
+            Teams, WrongKeys.teamid == Teams.id).filter(not Teams.banned).count()
+        solves = Solves.query.join(Teams, Solves.teamid == Teams.id).filter(
+            not Teams.banned).count()
         db.session.close()
         json_data = {'fails': str(fails), 'solves': str(solves)}
         return jsonify(json_data)
@@ -198,7 +204,8 @@ def admin_fails(teamid):
 @admin_teams.route('/admin/solves/<int:teamid>/<int:chalid>/solve', methods=['POST'])
 @admins_only
 def create_solve(teamid, chalid):
-    solve = Solves(chalid=chalid, teamid=teamid, ip='127.0.0.1', flag='MARKED_AS_SOLVED_BY_ADMIN')
+    solve = Solves(chalid=chalid, teamid=teamid, ip='127.0.0.1',
+                   flag='MARKED_AS_SOLVED_BY_ADMIN')
     db.session.add(solve)
     db.session.commit()
     db.session.close()

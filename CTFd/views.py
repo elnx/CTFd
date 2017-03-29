@@ -64,10 +64,12 @@ def setup():
             freeze = utils.set_config('freeze', None)
 
             # Challenges cannot be viewed by unregistered users
-            view_challenges_unregistered = utils.set_config('view_challenges_unregistered', None)
+            view_challenges_unregistered = utils.set_config(
+                'view_challenges_unregistered', None)
 
             # Allow/Disallow registration
-            prevent_registration = utils.set_config('prevent_registration', None)
+            prevent_registration = utils.set_config(
+                'prevent_registration', None)
 
             # Verify emails
             verify_emails = utils.set_config('verify_emails', None)
@@ -127,10 +129,12 @@ def teams(page):
 
     if utils.get_config('verify_emails'):
         count = Teams.query.filter_by(verified=True, banned=False).count()
-        teams = Teams.query.filter_by(verified=True, banned=False).slice(page_start, page_end).all()
+        teams = Teams.query.filter_by(verified=True, banned=False).slice(
+            page_start, page_end).all()
     else:
         count = Teams.query.filter_by(banned=False).count()
-        teams = Teams.query.filter_by(banned=False).slice(page_start, page_end).all()
+        teams = Teams.query.filter_by(banned=False).slice(
+            page_start, page_end).all()
     pages = int(count / results_per_page) + (count % results_per_page > 0)
     return render_template('teams.html', teams=teams, team_pages=pages, curr_page=page)
 
@@ -170,7 +174,8 @@ def team(teamid):
     elif request.method == 'POST':
         json = {'solves': []}
         for x in solves:
-            json['solves'].append({'id': x.id, 'chal': x.chalid, 'team': x.teamid})
+            json['solves'].append(
+                {'id': x.id, 'chal': x.chalid, 'team': x.teamid})
         return jsonify(json)
 
 
@@ -193,7 +198,8 @@ def profile():
                 name_len = len(request.form['name']) == 0
 
             emails = Teams.query.filter_by(email=email).first()
-            valid_email = re.match(r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", email)
+            valid_email = re.match(
+                r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)", email)
 
             if ('password' in request.form.keys() and not len(request.form['password']) == 0) and \
                     (not bcrypt_sha256.verify(request.form.get('confirm').strip(), user.password)):
@@ -223,7 +229,8 @@ def profile():
                 session['username'] = team.name
 
                 if 'password' in request.form.keys() and not len(request.form['password']) == 0:
-                    team.password = bcrypt_sha256.encrypt(request.form.get('password'))
+                    team.password = bcrypt_sha256.encrypt(
+                        request.form.get('password'))
                 team.website = website
                 team.affiliation = affiliation
                 team.country = country
@@ -238,7 +245,8 @@ def profile():
             affiliation = user.affiliation
             country = user.country
             prevent_name_change = utils.get_config('prevent_name_change')
-            confirm_email = utils.get_config('verify_emails') and not user.verified
+            confirm_email = utils.get_config(
+                'verify_emails') and not user.verified
             return render_template('profile.html', name=name, email=email, website=website, affiliation=affiliation,
                                    country=country, prevent_name_change=prevent_name_change, confirm_email=confirm_email)
     else:

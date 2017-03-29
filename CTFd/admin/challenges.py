@@ -25,7 +25,8 @@ def admin_chal_types():
 @admins_only
 def admin_chals():
     if request.method == 'POST':
-        chals = Challenges.query.add_columns('id', 'name', 'value', 'description', 'category', 'hidden', 'max_attempts').order_by(Challenges.value).all()
+        chals = Challenges.query.add_columns(
+            'id', 'name', 'value', 'description', 'category', 'hidden', 'max_attempts').order_by(Challenges.value).all()
 
         teams_with_points = db.session.query(Solves.teamid).join(Teams).filter(
             not Teams.banned).group_by(Solves.teamid).count()
@@ -63,7 +64,8 @@ def admin_tags(chalid):
         tags = Tags.query.filter_by(chal=chalid).all()
         json_data = {'tags': []}
         for x in tags:
-            json_data['tags'].append({'id': x.id, 'chal': x.chal, 'tag': x.tag})
+            json_data['tags'].append(
+                {'id': x.id, 'chal': x.chal, 'tag': x.tag})
         return jsonify(json_data)
 
     elif request.method == 'POST':
@@ -137,12 +139,12 @@ def admin_hints(hintid):
             db.session.add(hint)
             db.session.commit()
             json_data = {
-                    'hint': hint.hint,
-                    'type': hint.type,
-                    'chal': hint.chal,
-                    'cost': hint.cost,
-                    'id': hint.id
-                }
+                'hint': hint.hint,
+                'type': hint.type,
+                'chal': hint.chal,
+                'cost': hint.cost,
+                'id': hint.id
+            }
             db.session.close()
             return jsonify(json_data)
 
@@ -159,8 +161,10 @@ def admin_files(chalid):
     if request.method == 'POST':
         if request.form['method'] == "delete":
             f = Files.query.filter_by(id=request.form['file']).first_or_404()
-            upload_folder = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-            if os.path.exists(os.path.join(upload_folder, f.location)):  # Some kind of os.path.isfile issue on Windows...
+            upload_folder = os.path.join(
+                app.root_path, app.config['UPLOAD_FOLDER'])
+            # Some kind of os.path.isfile issue on Windows...
+            if os.path.exists(os.path.join(upload_folder, f.location)):
                 os.unlink(os.path.join(upload_folder, f.location))
             db.session.delete(f)
             db.session.commit()
@@ -190,7 +194,7 @@ def admin_get_values(chalid, prop):
                 'key': x.flag,
                 'type': x.key_type,
                 'type_name': get_key_class(x.key_type).name
-                })
+            })
         return jsonify(json_data)
     elif prop == 'tags':
         tags = Tags.query.filter_by(chal=chalid).all()
@@ -200,19 +204,19 @@ def admin_get_values(chalid, prop):
                 'id': x.id,
                 'chal': x.chal,
                 'tag': x.tag
-                })
+            })
         return jsonify(json_data)
     elif prop == 'hints':
         hints = Hints.query.filter_by(chal=chalid)
         json_data = {'hints': []}
         for hint in hints:
             json_data['hints'].append({
-                    'hint': hint.hint,
-                    'type': hint.type,
-                    'chal': hint.chal,
-                    'cost': hint.cost,
-                    'id': hint.id
-                })
+                'hint': hint.hint,
+                'type': hint.type,
+                'chal': hint.chal,
+                'cost': hint.cost,
+                'id': hint.id
+            })
         return jsonify(json_data)
 
 
@@ -223,7 +227,8 @@ def admin_create_chal():
         files = request.files.getlist('files[]')
 
         # Create challenge
-        chal = Challenges(request.form['name'], request.form['desc'], request.form['value'], request.form['category'], int(request.form['chaltype']))
+        chal = Challenges(request.form['name'], request.form['desc'], request.form['value'],
+                          request.form['category'], int(request.form['chaltype']))
         if 'hidden' in request.form:
             chal.hidden = True
         else:
@@ -236,7 +241,8 @@ def admin_create_chal():
         db.session.add(chal)
         db.session.flush()
 
-        flag = Keys(chal.id, request.form['key'], int(request.form['key_type[0]']))
+        flag = Keys(chal.id, request.form['key'], int(
+            request.form['key_type[0]']))
         if request.form.get('keydata'):
             flag.data = request.form.get('keydata')
         db.session.add(flag)
@@ -256,7 +262,8 @@ def admin_create_chal():
 @admin_challenges.route('/admin/chal/delete', methods=['POST'])
 @admins_only
 def admin_delete_chal():
-    challenge = Challenges.query.filter_by(id=request.form['id']).first_or_404()
+    challenge = Challenges.query.filter_by(
+        id=request.form['id']).first_or_404()
     WrongKeys.query.filter_by(chalid=challenge.id).delete()
     Solves.query.filter_by(chalid=challenge.id).delete()
     Keys.query.filter_by(chal=challenge.id).delete()
@@ -264,7 +271,8 @@ def admin_delete_chal():
     Files.query.filter_by(chal=challenge.id).delete()
     for file in files:
         upload_folder = app.config['UPLOAD_FOLDER']
-        folder = os.path.dirname(os.path.join(os.path.normpath(app.root_path), upload_folder, file.location))
+        folder = os.path.dirname(os.path.join(os.path.normpath(
+            app.root_path), upload_folder, file.location))
         utils.rmdir(folder)
     Tags.query.filter_by(chal=challenge.id).delete()
     Challenges.query.filter_by(id=challenge.id).delete()
@@ -276,11 +284,14 @@ def admin_delete_chal():
 @admin_challenges.route('/admin/chal/update', methods=['POST'])
 @admins_only
 def admin_update_chal():
-    challenge = Challenges.query.filter_by(id=request.form['id']).first_or_404()
+    challenge = Challenges.query.filter_by(
+        id=request.form['id']).first_or_404()
     challenge.name = request.form['name']
     challenge.description = request.form['desc']
-    challenge.value = int(request.form.get('value', 0)) if request.form.get('value', 0) else 0
-    challenge.max_attempts = int(request.form.get('max_attempts', 0)) if request.form.get('max_attempts', 0) else 0
+    challenge.value = int(request.form.get('value', 0)
+                          ) if request.form.get('value', 0) else 0
+    challenge.max_attempts = int(request.form.get(
+        'max_attempts', 0)) if request.form.get('max_attempts', 0) else 0
     challenge.category = request.form['category']
     challenge.hidden = 'hidden' in request.form
     db.session.add(challenge)

@@ -177,7 +177,8 @@ class Teams(db.Model):
 
     def score(self, admin=False):
         score = db.func.sum(Challenges.value).label('score')
-        team = db.session.query(Solves.teamid, score).join(Teams).join(Challenges).filter(Teams.banned == False, Teams.id == self.id)
+        team = db.session.query(Solves.teamid, score).join(Teams).join(
+            Challenges).filter(Teams.banned == False, Teams.id == self.id)
         award_score = db.func.sum(Awards.value).label('award_score')
         award = db.session.query(award_score).filter_by(teamid=self.id)
 
@@ -200,7 +201,8 @@ class Teams(db.Model):
     def place(self, admin=False):
         score = db.func.sum(Challenges.value).label('score')
         quickest = db.func.max(Solves.date).label('quickest')
-        teams = db.session.query(Solves.teamid).join(Teams).join(Challenges).filter(Teams.banned == False)
+        teams = db.session.query(Solves.teamid).join(
+            Teams).join(Challenges).filter(Teams.banned == False)
 
         if not admin:
             freeze = Config.query.filter_by(key='freeze').first()
@@ -209,7 +211,8 @@ class Teams(db.Model):
                 freeze = datetime.datetime.utcfromtimestamp(freeze)
                 teams = teams.filter(Solves.date < freeze)
 
-        teams = teams.group_by(Solves.teamid).order_by(score.desc(), quickest).all()
+        teams = teams.group_by(Solves.teamid).order_by(
+            score.desc(), quickest).all()
 
         # http://codegolf.stackexchange.com/a/4712
         try:
@@ -228,8 +231,10 @@ class Solves(db.Model):
     ip = db.Column(db.Integer)
     flag = db.Column(db.Text)
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    team = db.relationship('Teams', foreign_keys="Solves.teamid", lazy='joined')
-    chal = db.relationship('Challenges', foreign_keys="Solves.chalid", lazy='joined')
+    team = db.relationship(
+        'Teams', foreign_keys="Solves.teamid", lazy='joined')
+    chal = db.relationship(
+        'Challenges', foreign_keys="Solves.chalid", lazy='joined')
     # value = db.Column(db.Integer)
 
     def __init__(self, chalid, teamid, ip, flag):
@@ -249,7 +254,8 @@ class WrongKeys(db.Model):
     teamid = db.Column(db.Integer, db.ForeignKey('teams.id'))
     date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     flag = db.Column(db.Text)
-    chal = db.relationship('Challenges', foreign_keys="WrongKeys.chalid", lazy='joined')
+    chal = db.relationship(
+        'Challenges', foreign_keys="WrongKeys.chalid", lazy='joined')
 
     def __init__(self, teamid, chalid, flag):
         self.teamid = teamid

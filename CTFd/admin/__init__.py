@@ -39,7 +39,8 @@ def admin_view():
 def admin_plugin_config(plugin):
     if request.method == 'GET':
         if plugin in utils.get_configurable_plugins():
-            config = open(os.path.join(app.root_path, 'plugins', plugin, 'config.html')).read()
+            config = open(os.path.join(app.root_path, 'plugins',
+                                       plugin, 'config.html')).read()
             return render_template('admin/page.html', content=config)
         abort(404)
     elif request.method == 'POST':
@@ -63,11 +64,15 @@ def admin_config():
             freeze = int(request.form['freeze'])
 
         try:
-            view_challenges_unregistered = bool(request.form.get('view_challenges_unregistered', None))
-            view_scoreboard_if_authed = bool(request.form.get('view_scoreboard_if_authed', None))
+            view_challenges_unregistered = bool(
+                request.form.get('view_challenges_unregistered', None))
+            view_scoreboard_if_authed = bool(
+                request.form.get('view_scoreboard_if_authed', None))
             hide_scores = bool(request.form.get('hide_scores', None))
-            prevent_registration = bool(request.form.get('prevent_registration', None))
-            prevent_name_change = bool(request.form.get('prevent_name_change', None))
+            prevent_registration = bool(
+                request.form.get('prevent_registration', None))
+            prevent_name_change = bool(
+                request.form.get('prevent_name_change', None))
             view_after_ctf = bool(request.form.get('view_after_ctf', None))
             verify_emails = bool(request.form.get('verify_emails', None))
             mail_tls = bool(request.form.get('mail_tls', None))
@@ -83,28 +88,41 @@ def admin_config():
             mail_tls = None
             mail_ssl = None
         finally:
-            view_challenges_unregistered = utils.set_config('view_challenges_unregistered', view_challenges_unregistered)
-            view_scoreboard_if_authed = utils.set_config('view_scoreboard_if_authed', view_scoreboard_if_authed)
+            view_challenges_unregistered = utils.set_config(
+                'view_challenges_unregistered', view_challenges_unregistered)
+            view_scoreboard_if_authed = utils.set_config(
+                'view_scoreboard_if_authed', view_scoreboard_if_authed)
             hide_scores = utils.set_config('hide_scores', hide_scores)
-            prevent_registration = utils.set_config('prevent_registration', prevent_registration)
-            prevent_name_change = utils.set_config('prevent_name_change', prevent_name_change)
+            prevent_registration = utils.set_config(
+                'prevent_registration', prevent_registration)
+            prevent_name_change = utils.set_config(
+                'prevent_name_change', prevent_name_change)
             view_after_ctf = utils.set_config('view_after_ctf', view_after_ctf)
             verify_emails = utils.set_config('verify_emails', verify_emails)
             mail_tls = utils.set_config('mail_tls', mail_tls)
             mail_ssl = utils.set_config('mail_ssl', mail_ssl)
 
-        mail_server = utils.set_config("mail_server", request.form.get('mail_server', None))
-        mail_port = utils.set_config("mail_port", request.form.get('mail_port', None))
+        mail_server = utils.set_config(
+            "mail_server", request.form.get('mail_server', None))
+        mail_port = utils.set_config(
+            "mail_port", request.form.get('mail_port', None))
 
-        mail_username = utils.set_config("mail_username", request.form.get('mail_username', None))
-        mail_password = utils.set_config("mail_password", request.form.get('mail_password', None))
+        mail_username = utils.set_config(
+            "mail_username", request.form.get('mail_username', None))
+        mail_password = utils.set_config(
+            "mail_password", request.form.get('mail_password', None))
 
-        ctf_name = utils.set_config("ctf_name", request.form.get('ctf_name', None))
-        ctf_theme = utils.set_config("ctf_theme", request.form.get('ctf_theme', None))
+        ctf_name = utils.set_config(
+            "ctf_name", request.form.get('ctf_name', None))
+        ctf_theme = utils.set_config(
+            "ctf_theme", request.form.get('ctf_theme', None))
 
-        mailfrom_addr = utils.set_config("mailfrom_addr", request.form.get('mailfrom_addr', None))
-        mg_base_url = utils.set_config("mg_base_url", request.form.get('mg_base_url', None))
-        mg_api_key = utils.set_config("mg_api_key", request.form.get('mg_api_key', None))
+        mailfrom_addr = utils.set_config(
+            "mailfrom_addr", request.form.get('mailfrom_addr', None))
+        mg_base_url = utils.set_config(
+            "mg_base_url", request.form.get('mg_base_url', None))
+        mg_api_key = utils.set_config(
+            "mg_api_key", request.form.get('mg_api_key', None))
 
         db_freeze = utils.set_config("freeze", freeze)
 
@@ -146,7 +164,8 @@ def admin_config():
     mail_tls = utils.get_config('mail_tls')
     mail_ssl = utils.get_config('mail_ssl')
 
-    view_challenges_unregistered = utils.get_config('view_challenges_unregistered')
+    view_challenges_unregistered = utils.get_config(
+        'view_challenges_unregistered')
     view_scoreboard_if_authed = utils.get_config('view_scoreboard_if_authed')
     prevent_registration = utils.get_config('prevent_registration')
     prevent_name_change = utils.get_config('prevent_name_change')

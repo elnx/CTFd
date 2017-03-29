@@ -59,9 +59,12 @@ def init_logs(app):
         if not os.path.exists(log):
             open(log, 'a').close()
 
-    key_log = logging.handlers.RotatingFileHandler(os.path.join(parent, 'logs', 'keys.log'), maxBytes=10000)
-    login_log = logging.handlers.RotatingFileHandler(os.path.join(parent, 'logs', 'logins.log'), maxBytes=10000)
-    register_log = logging.handlers.RotatingFileHandler(os.path.join(parent, 'logs', 'registers.log'), maxBytes=10000)
+    key_log = logging.handlers.RotatingFileHandler(
+        os.path.join(parent, 'logs', 'keys.log'), maxBytes=10000)
+    login_log = logging.handlers.RotatingFileHandler(
+        os.path.join(parent, 'logs', 'logins.log'), maxBytes=10000)
+    register_log = logging.handlers.RotatingFileHandler(
+        os.path.join(parent, 'logs', 'registers.log'), maxBytes=10000)
 
     logger_keys.addHandler(key_log)
     logger_logins.addHandler(login_log)
@@ -100,7 +103,8 @@ def init_utils(app):
     app.jinja_env.globals.update(ctf_name=ctf_name)
     app.jinja_env.globals.update(ctf_theme=ctf_theme)
     app.jinja_env.globals.update(can_create_container=can_create_container)
-    app.jinja_env.globals.update(get_configurable_plugins=get_configurable_plugins)
+    app.jinja_env.globals.update(
+        get_configurable_plugins=get_configurable_plugins)
     app.jinja_env.globals.update(get_config=get_config)
     app.jinja_env.globals.update(hide_scores=hide_scores)
 
@@ -120,7 +124,8 @@ def init_utils(app):
     @app.before_request
     def tracker():
         if authed():
-            track = Tracking.query.filter_by(ip=ip2long(get_ip()), team=session['id']).first()
+            track = Tracking.query.filter_by(
+                ip=ip2long(get_ip()), team=session['id']).first()
             if not track:
                 visit = Tracking(ip=get_ip(), team=session['id'])
                 db.session.add(visit)
@@ -221,7 +226,6 @@ def is_scoreboard_frozen():
             return True
 
     return False
-
 
 
 def ctftime():
@@ -338,7 +342,8 @@ def upload_file(file, chalid):
 
     md5hash = hashlib.md5(os.urandom(64)).hexdigest()
 
-    upload_folder = os.path.join(os.path.normpath(app.root_path), app.config['UPLOAD_FOLDER'])
+    upload_folder = os.path.join(os.path.normpath(
+        app.root_path), app.config['UPLOAD_FOLDER'])
     if not os.path.exists(os.path.join(upload_folder, md5hash)):
         os.makedirs(os.path.join(upload_folder, md5hash))
 
@@ -412,10 +417,13 @@ def get_smtp(host, port, username=None, password=None, TLS=None, SSL=None):
 
 def sendmail(addr, text):
     ctf_name = get_config('ctf_name')
-    mailfrom_addr = get_config('mailfrom_addr') or app.config.get('MAILFROM_ADDR')
+    mailfrom_addr = get_config(
+        'mailfrom_addr') or app.config.get('MAILFROM_ADDR')
     if mailgun():
-        mg_api_key = get_config('mg_api_key') or app.config.get('MAILGUN_API_KEY')
-        mg_base_url = get_config('mg_base_url') or app.config.get('MAILGUN_BASE_URL')
+        mg_api_key = get_config(
+            'mg_api_key') or app.config.get('MAILGUN_API_KEY')
+        mg_base_url = get_config(
+            'mg_base_url') or app.config.get('MAILGUN_BASE_URL')
 
         r = requests.post(
             mg_base_url + '/messages',
@@ -460,7 +468,8 @@ def verify_email(addr):
     token = s.sign(addr)
     text = """Please click the following link to confirm your email address for {}: {}""".format(
         get_config('ctf_name'),
-        url_for('auth.confirm_user', _external=True) + '/' + urllib.quote_plus(token.encode('base64'))
+        url_for('auth.confirm_user', _external=True) + '/' +
+        urllib.quote_plus(token.encode('base64'))
     )
     sendmail(addr, text)
 
@@ -540,11 +549,13 @@ def delete_image(name):
 
 def run_image(name):
     try:
-        info = json.loads(subprocess.check_output(['docker', 'inspect', '--type=image', name]))
+        info = json.loads(subprocess.check_output(
+            ['docker', 'inspect', '--type=image', name]))
 
         try:
             ports_asked = info[0]['Config']['ExposedPorts'].keys()
-            ports_asked = [int(re.sub('[A-Za-z/]+', '', port)) for port in ports_asked]
+            ports_asked = [int(re.sub('[A-Za-z/]+', '', port))
+                           for port in ports_asked]
         except KeyError:
             ports_asked = []
 
@@ -585,7 +596,8 @@ def container_stop(name):
 
 def container_status(name):
     try:
-        data = json.loads(subprocess.check_output(['docker', 'inspect', '--type=container', name]))
+        data = json.loads(subprocess.check_output(
+            ['docker', 'inspect', '--type=container', name]))
         status = data[0]["State"]["Status"]
         return status
     except subprocess.CalledProcessError:
@@ -594,7 +606,8 @@ def container_status(name):
 
 def container_ports(name, verbose=False):
     try:
-        info = json.loads(subprocess.check_output(['docker', 'inspect', '--type=container', name]))
+        info = json.loads(subprocess.check_output(
+            ['docker', 'inspect', '--type=container', name]))
         if verbose:
             ports = info[0]["NetworkSettings"]["Ports"]
             if not ports:

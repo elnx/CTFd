@@ -12,46 +12,50 @@ from CTFd import utils
 
 challenges = Blueprint('challenges', __name__)
 
+
 @challenges.route('/hints/<int:hintid>', methods=['GET', 'POST'])
 def hints_view(hintid):
     hint = Hints.query.filter_by(id=hintid).first_or_404()
     chal = Challenges.query.filter_by(id=hint.chal).first()
-    unlock = Unlocks.query.filter_by(model='hints', itemid=hintid, teamid=session['id']).first()
+    unlock = Unlocks.query.filter_by(
+        model='hints', itemid=hintid, teamid=session['id']).first()
     if request.method == 'GET':
         if unlock:
             return jsonify({
-                    'hint': hint.hint,
-                    'chal': hint.chal,
-                    'cost': hint.cost
-                })
+                'hint': hint.hint,
+                'chal': hint.chal,
+                'cost': hint.cost
+            })
         else:
             return jsonify({
-                    'chal': hint.chal,
-                    'cost': hint.cost
-                })
+                'chal': hint.chal,
+                'cost': hint.cost
+            })
     elif request.method == 'POST':
         if not unlock:
             team = Teams.query.filter_by(id=session['id']).first()
             if team.score() < hint.cost:
                 return jsonify({'errors': 'Not enough points'})
-            unlock = Unlocks(model='hints', teamid=session['id'], itemid=hint.id)
-            award = Awards(teamid=session['id'], name='Hint for {}'.format(chal.name), value=(-hint.cost))
+            unlock = Unlocks(
+                model='hints', teamid=session['id'], itemid=hint.id)
+            award = Awards(teamid=session['id'], name='Hint for {}'.format(
+                chal.name), value=(-hint.cost))
             db.session.add(unlock)
             db.session.add(award)
             db.session.commit()
             json_data = {
-                    'hint': hint.hint,
-                    'chal': hint.chal,
-                    'cost': hint.cost
-                }
+                'hint': hint.hint,
+                'chal': hint.chal,
+                'cost': hint.cost
+            }
             db.session.close()
             return jsonify(json_data)
         else:
             json_data = {
-                    'hint': hint.hint,
-                    'chal': hint.chal,
-                    'cost': hint.cost
-                }
+                'hint': hint.hint,
+                'chal': hint.chal,
+                'cost': hint.cost
+            }
             db.session.close()
             return jsonify(json_data)
 
@@ -61,20 +65,22 @@ def challenges_view():
     errors = []
     start = utils.get_config('start') or 0
     end = utils.get_config('end') or 0
-    if not utils.is_admin(): # User is not an admin
+    if not utils.is_admin():  # User is not an admin
         if not utils.ctftime():
             # It is not CTF time
-            if utils.view_after_ctf(): # But we are allowed to view after the CTF ends
+            if utils.view_after_ctf():  # But we are allowed to view after the CTF ends
                 pass
             else:  # We are NOT allowed to view after the CTF ends
                 if utils.get_config('start') and not utils.ctf_started():
-                    errors.append('{} has not started yet'.format(utils.ctf_name()))
+                    errors.append(
+                        '{} has not started yet'.format(utils.ctf_name()))
                 if (utils.get_config('end') and utils.ctf_ended()) and not utils.view_after_ctf():
                     errors.append('{} has ended'.format(utils.ctf_name()))
                 return render_template('chals.html', errors=errors, start=int(start), end=int(end))
-        if utils.get_config('verify_emails') and not utils.is_verified(): # User is not confirmed
+        # User is not confirmed
+        if utils.get_config('verify_emails') and not utils.is_verified():
             return redirect(url_for('auth.confirm_user'))
-    if utils.user_can_view_challenges(): # Do we allow unauthenticated users?
+    if utils.user_can_view_challenges():  # Do we allow unauthenticated users?
         if utils.get_config('start') and not utils.ctf_started():
             errors.append('{} has not started yet'.format(utils.ctf_name()))
         if (utils.get_config('end') and utils.ctf_ended()) and not utils.view_after_ctf():
@@ -93,18 +99,23 @@ def chals():
             else:
                 return redirect(url_for('views.static_html'))
     if utils.user_can_view_challenges() and (utils.ctf_started() or utils.is_admin()):
-        chals = Challenges.query.filter(or_(Challenges.hidden != True, Challenges.hidden == None)).order_by(Challenges.value).all()
+        chals = Challenges.query.filter(or_(
+            Challenges.hidden != True, Challenges.hidden == None)).order_by(Challenges.value).all()
         json = {'game': []}
         for x in chals:
-            tags = [tag.tag for tag in Tags.query.add_columns('tag').filter_by(chal=x.id).all()]
-            files = [str(f.location) for f in Files.query.filter_by(chal=x.id).all()]
-            unlocked_hints = set([u.itemid for u in Unlocks.query.filter_by(model='hints', teamid=session['id'])])
+            tags = [tag.tag for tag in Tags.query.add_columns(
+                'tag').filter_by(chal=x.id).all()]
+            files = [str(f.location)
+                     for f in Files.query.filter_by(chal=x.id).all()]
+            unlocked_hints = set([u.itemid for u in Unlocks.query.filter_by(
+                model='hints', teamid=session['id'])])
             hints = []
             for hint in Hints.query.filter_by(chal=x.id).all():
                 if hint.id in unlocked_hints:
-                    hints.append({'id':hint.id, 'cost':hint.cost, 'hint':hint.hint})
+                    hints.append(
+                        {'id': hint.id, 'cost': hint.cost, 'hint': hint.hint})
                 else:
-                    hints.append({'id':hint.id, 'cost':hint.cost})
+                    hints.append({'id': hint.id, 'cost': hint.cost})
             # hints = [{'id':hint.id, 'cost':hint.cost} for hint in Hints.query.filter_by(chal=x.id).all()]
             chal_type = get_chal_class(x.type)
             json['game'].append({
@@ -131,7 +142,8 @@ def solves_per_chal():
     if not utils.user_can_view_challenges():
         return redirect(url_for('auth.login', next=request.path))
 
-    solves_sub = db.session.query(Solves.chalid, db.func.count(Solves.chalid).label('solves')).join(Teams, Solves.teamid == Teams.id).filter(not Teams.banned).group_by(Solves.chalid).subquery()
+    solves_sub = db.session.query(Solves.chalid, db.func.count(Solves.chalid).label('solves')).join(
+        Teams, Solves.teamid == Teams.id).filter(not Teams.banned).group_by(Solves.chalid).subquery()
     solves = db.session.query(solves_sub.columns.chalid, solves_sub.columns.solves, Challenges.name) \
                        .join(Challenges, solves_sub.columns.chalid == Challenges.id).all()
     json = {}
@@ -155,7 +167,8 @@ def solves(teamid=None):
             solves = Solves.query.filter_by(teamid=session['id']).all()
         elif utils.user_can_view_challenges():
             if utils.authed():
-                solves = Solves.query.join(Teams, Solves.teamid == Teams.id).filter(Solves.teamid == session['id'], Teams.banned == False).all()
+                solves = Solves.query.join(Teams, Solves.teamid == Teams.id).filter(
+                    Solves.teamid == session['id'], Teams.banned == False).all()
             else:
                 return jsonify({'solves': []})
         else:
@@ -205,7 +218,8 @@ def attempts():
     chals = Challenges.query.add_columns('id').all()
     json = {'maxattempts': []}
     for chal, chalid in chals:
-        fails = WrongKeys.query.filter_by(teamid=session['id'], chalid=chalid).count()
+        fails = WrongKeys.query.filter_by(
+            teamid=session['id'], chalid=chalid).count()
         if fails >= int(utils.get_config("max_tries")) and int(utils.get_config("max_tries")) > 0:
             json['maxattempts'].append({'chalid': chalid})
     return jsonify(json)
@@ -228,9 +242,11 @@ def who_solved(chalid):
     json = {'teams': []}
     if utils.hide_scores():
         return jsonify(json)
-    solves = Solves.query.join(Teams, Solves.teamid == Teams.id).filter(Solves.chalid == chalid, not Teams.banned).order_by(Solves.date.asc())
+    solves = Solves.query.join(Teams, Solves.teamid == Teams.id).filter(
+        Solves.chalid == chalid, not Teams.banned).order_by(Solves.date.asc())
     for solve in solves:
-        json['teams'].append({'id': solve.team.id, 'name': solve.team.name, 'date': solve.date})
+        json['teams'].append(
+            {'id': solve.team.id, 'name': solve.team.name, 'date': solve.date})
     return jsonify(json)
 
 
@@ -241,9 +257,11 @@ def chal(chalid):
     if not utils.user_can_view_challenges():
         return redirect(url_for('auth.login', next=request.path))
     if utils.authed() and utils.is_verified() and (utils.ctf_started() or utils.view_after_ctf()):
-        fails = WrongKeys.query.filter_by(teamid=session['id'], chalid=chalid).count()
+        fails = WrongKeys.query.filter_by(
+            teamid=session['id'], chalid=chalid).count()
         logger = logging.getLogger('keys')
-        data = (time.strftime("%m/%d/%Y %X"), session['username'].encode('utf-8'), request.form['key'].encode('utf-8'), utils.get_kpm(session['id']))
+        data = (time.strftime("%m/%d/%Y %X"), session['username'].encode(
+            'utf-8'), request.form['key'].encode('utf-8'), utils.get_kpm(session['id']))
         print("[{0}] {1} submitted {2} with kpm {3}".format(*data))
 
         # Anti-bruteforce / submitting keys too quickly
@@ -253,11 +271,13 @@ def chal(chalid):
                 db.session.add(wrong)
                 db.session.commit()
                 db.session.close()
-            logger.warn("[{0}] {1} submitted {2} with kpm {3} [TOO FAST]".format(*data))
+            logger.warn(
+                "[{0}] {1} submitted {2} with kpm {3} [TOO FAST]".format(*data))
             # return '3' # Submitting too fast
             return jsonify({'status': '3', 'message': "You're submitting keys too fast. Slow down."})
 
-        solves = Solves.query.filter_by(teamid=session['id'], chalid=chalid).first()
+        solves = Solves.query.filter_by(
+            teamid=session['id'], chalid=chalid).first()
 
         # Challange not solved yet
         if not solves:
@@ -276,22 +296,27 @@ def chal(chalid):
             chal_class = get_chal_class(chal.type)
             if chal_class.solve(chal, provided_key):
                 if utils.ctftime():
-                    solve = Solves(chalid=chalid, teamid=session['id'], ip=utils.get_ip(), flag=provided_key)
+                    solve = Solves(
+                        chalid=chalid, teamid=session['id'], ip=utils.get_ip(), flag=provided_key)
                     db.session.add(solve)
                     db.session.commit()
                     db.session.close()
-                logger.info("[{0}] {1} submitted {2} with kpm {3} [CORRECT]".format(*data))
+                logger.info(
+                    "[{0}] {1} submitted {2} with kpm {3} [CORRECT]".format(*data))
                 return jsonify({'status': '1', 'message': 'Correct'})
 
             if utils.ctftime():
-                wrong = WrongKeys(teamid=session['id'], chalid=chalid, flag=provided_key)
+                wrong = WrongKeys(
+                    teamid=session['id'], chalid=chalid, flag=provided_key)
                 db.session.add(wrong)
                 db.session.commit()
                 db.session.close()
-            logger.info("[{0}] {1} submitted {2} with kpm {3} [WRONG]".format(*data))
+            logger.info(
+                "[{0}] {1} submitted {2} with kpm {3} [WRONG]".format(*data))
             # return '0' # key was wrong
             if max_tries:
-                attempts_left = max_tries - fails - 1  # Off by one since fails has changed since it was gotten
+                # Off by one since fails has changed since it was gotten
+                attempts_left = max_tries - fails - 1
                 tries_str = 'tries'
                 if attempts_left == 1:
                     tries_str = 'try'
@@ -301,7 +326,8 @@ def chal(chalid):
 
         # Challenge already solved
         else:
-            logger.info("{0} submitted {1} with kpm {2} [ALREADY SOLVED]".format(*data))
+            logger.info(
+                "{0} submitted {1} with kpm {2} [ALREADY SOLVED]".format(*data))
             # return '2' # challenge was already solved
             return jsonify({'status': '2', 'message': 'You already solved this'})
     else:
