@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=mysql+pymysql://root@db/ctfd
+      - SQLACHEMY_DATABASE_URL=mysql+pymysql://root@db/ctfd
     volumes:
       - .data/CTFd/logs:/opt/CTFd/CTFd/logs
       - .data/CTFd/uploads:/opt/CTFd/CTFd/uploads
